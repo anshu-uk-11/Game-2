@@ -2,7 +2,6 @@ const Q=s=>document.querySelector(s),QA=s=>[...document.querySelectorAll(s)];
 let lives=10,credits=0,streak=0,round=1,rolling=false,numbers=new Set(),size=null,parity=null;
 
 let audioCtx = null;
-let soundLoop = null;
 
 function audioStart(){
   try{
@@ -52,31 +51,6 @@ function diceResultSound(win){
   }
 }
 
-function diceRollSound(){
-  if(!audioCtx)return;
-  const now=audioCtx.currentTime;
-  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-  o.type="square";
-  o.frequency.setValueAtTime(120,now);
-  o.frequency.exponentialRampToValueAtTime(65,now+0.12);
-  g.gain.setValueAtTime(0.0001,now);
-  g.gain.exponentialRampToValueAtTime(0.09,now+0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001,now+0.13);
-  o.connect(g);g.connect(audioCtx.destination);o.start(now);o.stop(now+0.14);
-}
-function diceResultSound(win){
-  if(!audioCtx)return;
-  const now=audioCtx.currentTime;
-  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-  o.type="triangle";
-  o.frequency.setValueAtTime(win?520:210,now);
-  o.frequency.exponentialRampToValueAtTime(win?760:120,now+0.18);
-  g.gain.setValueAtTime(0.0001,now);
-  g.gain.exponentialRampToValueAtTime(0.12,now+0.015);
-  g.gain.exponentialRampToValueAtTime(0.0001,now+0.22);
-  o.connect(g);g.connect(audioCtx.destination);o.start(now);o.stop(now+0.23);
-}
-
 const layouts={1:[[50,50]],2:[[25,25],[75,75]],3:[[25,25],[50,50],[75,75]],4:[[25,25],[75,25],[25,75],[75,75]],5:[[25,25],[75,25],[50,50],[25,75],[75,75]],6:[[25,25],[25,50],[25,75],[75,25],[75,50],[75,75]]};
 
 for(let n=3;n<=18;n++){
@@ -122,13 +96,11 @@ function roll(){
  if(rolling||(!numbers.size&&!size&&!parity))return;
  audioStart();
  if(numbers.size>lives){notice('Not enough lives.','loss');return}
- rolling=true;audioStart();Q('#roll').disabled=true;QA('.die').forEach(d=>d.classList.add('rolling'));const soundLoop=setInterval(diceRollSound,180);diceRollSound();
- diceSound(false);
- const soundTimer=setInterval(()=>diceSound(false),180);
+ rolling=true;audioStart();Q('#roll').disabled=true;QA('.die').forEach(d=>d.classList.add('rolling'));diceRollSound();
+ const soundTimer=setInterval(diceRollSound,180);
  const v=[1+Math.random()*6|0,1+Math.random()*6|0,1+Math.random()*6|0];
  setTimeout(()=>{
    clearInterval(soundTimer);
-   diceSound(true);
    QA('.die').forEach((d,i)=>{d.classList.remove('rolling');draw(d,v[i])});
    const total=v[0]+v[1]+v[2],used=numbers.size;
    const results=[];
