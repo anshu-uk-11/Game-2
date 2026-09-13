@@ -23,6 +23,39 @@ function diceSound(finalSound=false){
   osc.start(now);osc.stop(now+0.1);
 }
 
+
+let audioCtx=null;
+function audioStart(){
+  try{
+    audioCtx=audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==="suspended") audioCtx.resume();
+  }catch(e){}
+}
+function diceRollSound(){
+  if(!audioCtx)return;
+  const now=audioCtx.currentTime;
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.type="square";
+  o.frequency.setValueAtTime(120,now);
+  o.frequency.exponentialRampToValueAtTime(65,now+0.12);
+  g.gain.setValueAtTime(0.0001,now);
+  g.gain.exponentialRampToValueAtTime(0.09,now+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,now+0.13);
+  o.connect(g);g.connect(audioCtx.destination);o.start(now);o.stop(now+0.14);
+}
+function diceResultSound(win){
+  if(!audioCtx)return;
+  const now=audioCtx.currentTime;
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.type="triangle";
+  o.frequency.setValueAtTime(win?520:210,now);
+  o.frequency.exponentialRampToValueAtTime(win?760:120,now+0.18);
+  g.gain.setValueAtTime(0.0001,now);
+  g.gain.exponentialRampToValueAtTime(0.12,now+0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001,now+0.22);
+  o.connect(g);g.connect(audioCtx.destination);o.start(now);o.stop(now+0.23);
+}
+
 const layouts={1:[[50,50]],2:[[25,25],[75,75]],3:[[25,25],[50,50],[75,75]],4:[[25,25],[75,25],[25,75],[75,75]],5:[[25,25],[75,25],[50,50],[25,75],[75,75]],6:[[25,25],[25,50],[25,75],[75,25],[75,50],[75,75]]};
 
 for(let n=3;n<=18;n++){
@@ -55,7 +88,10 @@ function animate(type,sub){
  box.setAttribute('aria-hidden','false');
  setTimeout(()=>{box.className='result-animation '+type;box.setAttribute('aria-hidden','true')},1750);
 }
-function clearChoices(){numbers.clear();size=null;parity=null;QA('.num,.pick').forEach(x=>x.classList.remove('selected'))}
+function clearChoices(){
+  numbers.clear(); size=null; parity=null;
+  QA('.num,.pick').forEach(x=>x.classList.remove('selected'));
+}
 function addChip(label,win){
  const r=document.createElement('div');r.className='result-chip '+(win?'win':'loss');
  r.innerHTML='<span class="label">'+label+'</span><span class="state">'+(win?'✓ WIN':'✕ LOSS')+'</span>';
@@ -65,7 +101,7 @@ function roll(){
  if(rolling||(!numbers.size&&!size&&!parity))return;
  audioStart();
  if(numbers.size>lives){notice('Not enough lives.','loss');return}
- rolling=true;Q('#roll').disabled=true;QA('.die').forEach(d=>d.classList.add('rolling'));
+ rolling=true;audioStart();Q('#roll').disabled=true;QA('.die').forEach(d=>d.classList.add('rolling'));const soundLoop=setInterval(diceRollSound,180);diceRollSound();
  diceSound(false);
  const soundTimer=setInterval(()=>diceSound(false),180);
  const v=[1+Math.random()*6|0,1+Math.random()*6|0,1+Math.random()*6|0];
@@ -99,7 +135,7 @@ function roll(){
    notice(anyWin?'Result checked — each choice is shown separately.':'All selected choices are LOSS.',''+(anyWin?'win':'loss'));
 
    // One animation for the round: golden if any selected choice wins, silver if all lose.
-   animate(anyWin?'win':'loss',anyWin?wins.join(' + ')+' matched':'No selected choice matched');
+   animate(anyWin?'win':'loss',anyWin?wins.join(' + ')+' matched':'No selected choice matched');diceResultSound(anyWin);
 
    Q('#total').textContent=total;Q('#lives').textContent=lives;Q('#credits').textContent=credits;Q('#streak').textContent=streak;
    addHistory(v,total,results);
@@ -118,3 +154,11 @@ function addHistory(v,total,results){
 QA('.die').forEach(d=>draw(d,1));
 Q('#roll').addEventListener('click',roll);
 Q('#lives').textContent=lives;Q('#credits').textContent=credits;Q('#streak').textContent=streak;
+
+Q('#reset').addEventListener('click',()=>{
+  if(rolling)return;
+  clearChoices();
+  Q('#resultList').innerHTML='<div class="empty">No result yet.</div>';
+  Q('#total').textContent='—';
+  notice('Choices reset. Select again and roll.');
+});
