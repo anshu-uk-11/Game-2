@@ -1,27 +1,17 @@
-const livesEl=document.getElementById("lives"),scoreEl=document.getElementById("score"),streakEl=document.getElementById("streak"),timerEl=document.getElementById("timer"),roundEl=document.getElementById("round"),totalEl=document.getElementById("total"),rollBtn=document.getElementById("rollBtn"),numbersEl=document.getElementById("numbers"),selectedCountEl=document.getElementById("selectedCount"),usedLivesEl=document.getElementById("usedLives"),resultCard=document.getElementById("resultCard"),resultTitle=document.getElementById("resultTitle"),resultText=document.getElementById("resultText"),historyEl=document.getElementById("history");
-let lives=10,score=0,streak=0,round=1,timer=30,rolling=false;
-let selectedNumbers=new Set(), selectedSize=null, selectedParity=null;
-
-for(let n=3;n<=18;n++){const b=document.createElement("button");b.className="num";b.textContent=n;b.dataset.number=n;b.onclick=()=>toggleNumber(n,b);numbersEl.appendChild(b)}
-document.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{if(rolling)return;const kind=b.dataset.kind;if(kind==="size"){selectedSize=selectedSize===b.dataset.value?null:b.dataset.value;document.querySelectorAll('[data-kind="size"]').forEach(x=>x.classList.toggle("selected",x===b&&selectedSize));}else{selectedParity=selectedParity===b.dataset.value?null:b.dataset.value;document.querySelectorAll('[data-kind="parity"]').forEach(x=>x.classList.toggle("selected",x===b&&selectedParity));}updateSelection()});
-
-function toggleNumber(n,b){if(rolling)return;if(selectedNumbers.has(n)){selectedNumbers.delete(n);b.classList.remove("selected")}else{if(lives-selectedNumbers.size<=0){showMessage("NO LIVES LEFT","You cannot select more numbers than your current lives.");return}selectedNumbers.add(n);b.classList.add("selected")}updateSelection()}
-function updateSelection(){selectedCountEl.textContent=selectedNumbers.size;usedLivesEl.textContent=selectedNumbers.size;rollBtn.disabled=rolling||(!selectedNumbers.size&&!selectedSize&&!selectedParity)}
-function clearChoices(){selectedNumbers.clear();selectedSize=null;selectedParity=null;document.querySelectorAll(".num,.choice").forEach(x=>x.classList.remove("selected"));updateSelection()}
-function showMessage(t,txt,cls=""){resultCard.className="result-card "+cls;resultTitle.textContent=t;resultText.textContent=txt}
-
-function setDie(el,v){el.dataset.value=v}
-function roll(){if(rolling)return;const used=selectedNumbers.size;if(!used&&!selectedSize&&!selectedParity)return;if(used>lives){showMessage("NOT ENOUGH LIVES","Choose fewer numbers.");return}rolling=true;rollBtn.disabled=true;
-const dice=[...document.querySelectorAll(".dice")];dice.forEach(d=>d.classList.add("rolling"));
-const vals=[1+Math.floor(Math.random()*6),1+Math.floor(Math.random()*6),1+Math.floor(Math.random()*6)];
-setTimeout(()=>{dice.forEach((d,i)=>{d.classList.remove("rolling");setDie(d,vals[i])});const total=vals.reduce((a,b)=>a+b,0);totalEl.textContent=total;resolve(total,used);rolling=false;},900)}
-function resolve(total,used){lives-=used;let wins=[],losses=[];if(selectedNumbers.size){if(selectedNumbers.has(total)){wins.push("Number");}else losses.push("Number")}
-if(selectedSize){const actual=total<=10?"small":"big";(actual===selectedSize?wins:losses).push(selectedSize.toUpperCase())}
-if(selectedParity){const actual=total%2===0?"even":"odd";(actual===selectedParity?wins:losses).push(selectedParity.toUpperCase())}
-const anyWin=wins.length>0; if(anyWin){lives+=2;score+=100*wins.length;streak++;showMessage("WIN ✓",`Total ${total} • ${wins.join(", ")} correct • +2 lives`, "win")}else{streak=0;showMessage("LOSS ✕",`Total ${total} • ${losses.join(", ")} wrong`, "loss")}
-livesEl.textContent=lives;scoreEl.textContent=score;streakEl.textContent=streak;addHistory(total,valsFromDice(),anyWin,wins);round++;roundEl.textContent=round;clearChoices();timer=30;timerEl.textContent=timer}
-function valsFromDice(){return [...document.querySelectorAll(".dice")].map(d=>d.dataset.value).join(" + ")}
-function addHistory(total,dice,win,wins){if(historyEl.classList.contains("history-empty"))historyEl.innerHTML="";const row=document.createElement("div");row.className="history-item";row.innerHTML=`<span>#${round} &nbsp; 🎲 ${dice} = <b>${total}</b></span><span class="${win?"win-text":"loss-text"}">${win?"WIN":"LOSS"}</span>`;historyEl.prepend(row);while(historyEl.children.length>12)historyEl.lastChild.remove()}
-rollBtn.onclick=roll;
-setInterval(()=>{if(rolling)return;timer--;if(timer<=0){if(selectedNumbers.size||selectedSize||selectedParity)roll();else timer=30}timerEl.textContent=timer},1000);
-updateSelection();
+const Q=s=>document.querySelector(s), QA=s=>[...document.querySelectorAll(s)];
+let lives=10,credits=0,streak=0,round=1,time=30,rolling=false,numbers=new Set(),size=null,parity=null;
+const layouts={1:[[50,50]],2:[[25,25],[75,75]],3:[[25,25],[50,50],[75,75]],4:[[25,25],[75,25],[25,75],[75,75]],5:[[25,25],[75,25],[50,50],[25,75],[75,75]],6:[[25,25],[25,50],[25,75],[75,25],[75,50],[75,75]]};
+for(let n=3;n<=18;n++){let b=document.createElement('button');b.className='num';b.textContent=n;b.onclick=()=>toggleNum(n,b);Q('#numbers').appendChild(b)}
+function toggleNum(n,b){if(rolling)return;if(numbers.has(n)){numbers.delete(n);b.classList.remove('selected')}else{if(numbers.size>=lives){notice('You need more lives for another number.','loss');return}numbers.add(n);b.classList.add('selected')}}
+QA('.pick').forEach(b=>b.onclick=()=>{if(rolling)return;let k=b.dataset.kind,v=b.dataset.val;if(k==='size')size=size===v?null:v;else parity=parity===v?null:v;QA('.pick').forEach(x=>x.classList.toggle('selected',(x.dataset.kind==='size'?x.dataset.val===size:x.dataset.val===parity)))});
+function draw(d,v){d.innerHTML='';for(const p of layouts[v]){let x=document.createElement('i');x.className='pip';x.style.left=p[0]+'%';x.style.top=p[1]+'%';d.appendChild(x)}d.dataset.v=v}
+function notice(t,c=''){Q('#notice').textContent=t;Q('#notice').className='notice '+c}
+function clear(){numbers.clear();size=null;parity=null;QA('.num,.pick').forEach(x=>x.classList.remove('selected'))}
+function roll(){if(rolling||(!numbers.size&&!size&&!parity))return;if(numbers.size>lives){notice('Not enough lives.','loss');return}rolling=true;Q('#roll').disabled=true;let ds=QA('.die');ds.forEach(d=>d.classList.add('rolling'));let v=[1+Math.random()*6|0,1+Math.random()*6|0,1+Math.random()*6|0];setTimeout(()=>{ds.forEach((d,i)=>{d.classList.remove('rolling');draw(d,v[i])});let total=v[0]+v[1]+v[2],used=numbers.size;let numberWin=numbers.size?numbers.has(total):false;let sizeWin=size?(total<=10?size==='small':size==='big'):null;let parityWin=parity?(total%2===0?parity==='even':parity==='odd'):null;
+lives-=used;
+if(numbers.size){if(numberWin){lives+=2;credits+=10;streak++;notice('WIN ✓  Number '+total+' matched  •  +2 Lives  •  +10 Credits','win')}else{streak=0;notice('LOSS ✕  Number '+total+' did not match','loss')}}else{notice('RESULT  '+total,'win')}
+Q('#total').textContent=total;Q('#lives').textContent=lives;Q('#credits').textContent=credits;Q('#streak').textContent=streak;
+let extra=[];if(size)extra.push('Big/Small: '+(sizeWin?'WIN':'LOSS'));if(parity)extra.push('Odd/Even: '+(parityWin?'WIN':'LOSS'));addHistory(v,total,numberWin,extra);round++;Q('#period').textContent=String(round).padStart(6,'0');clear();time=30;Q('#timer').textContent='30';rolling=false;Q('#roll').disabled=false},900)}
+function addHistory(v,total,win,extra){let r=document.createElement('div');r.className='history-row';r.innerHTML='<span>#'+round+'</span><span>🎲 '+v.join(' + ')+' = <b>'+total+'</b></span><span class="'+(win?'win':'loss')+'">'+(win?'WIN':'LOSS')+(extra.length?' • '+extra.join(' • '):'')+'</span>';Q('#history').prepend(r);while(Q('#history').children.length>15)Q('#history').lastElementChild.remove()}
+QA('.die').forEach(d=>draw(d,1));Q('#roll').onclick=roll;
+setInterval(()=>{if(rolling)return;time--;if(time<=0)time=30;Q('#timer').textContent=String(time).padStart(2,'0')},1000);
