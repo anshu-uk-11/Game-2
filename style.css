@@ -63,3 +63,5 @@ header{display:flex;justify-content:space-between;align-items:center;margin-bott
 .reset:hover{background:#222833}
 .num.selected{transform:translateY(-1px);box-shadow:0 0 0 3px rgba(245,198,75,.28),inset 0 0 16px rgba(245,198,75,.16)}
 @media(max-width:560px){.actions{grid-template-columns:1fr 105px}}
+
+#soundToggle{margin:8px;padding:10px 16px;border-radius:10px;border:1px solid #555;background:#222;color:#fff;cursor:pointer;font-weight:700}#soundToggle.off{opacity:.65}

@@ -1,36 +1,57 @@
 const Q=s=>document.querySelector(s),QA=s=>[...document.querySelectorAll(s)];
 let lives=10,credits=0,streak=0,round=1,rolling=false,numbers=new Set(),size=null,parity=null;
 
-let audioCtx=null;
+let audioCtx = null;
+let soundLoop = null;
+
 function audioStart(){
   try{
-    audioCtx=audioCtx || new (window.AudioContext||window.webkitAudioContext)();
-    if(audioCtx.state==="suspended") audioCtx.resume();
-  }catch(e){}
-}
-function diceSound(finalSound=false){
-  if(!audioCtx)return;
-  const now=audioCtx.currentTime;
-  const osc=audioCtx.createOscillator();
-  const gain=audioCtx.createGain();
-  osc.type=finalSound?"triangle":"square";
-  osc.frequency.setValueAtTime(finalSound?180:95,now);
-  osc.frequency.exponentialRampToValueAtTime(finalSound?80:55,now+0.08);
-  gain.gain.setValueAtTime(0.0001,now);
-  gain.gain.exponentialRampToValueAtTime(finalSound?0.16:0.08,now+0.008);
-  gain.gain.exponentialRampToValueAtTime(0.0001,now+0.09);
-  osc.connect(gain);gain.connect(audioCtx.destination);
-  osc.start(now);osc.stop(now+0.1);
+    if(!audioCtx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return false;
+      audioCtx = new AC();
+    }
+    if(audioCtx.state === "suspended") audioCtx.resume();
+    return true;
+  }catch(e){
+    console.log("Audio unavailable:", e);
+    return false;
+  }
 }
 
-
-let audioCtx=null;
-function audioStart(){
-  try{
-    audioCtx=audioCtx || new (window.AudioContext||window.webkitAudioContext)();
-    if(audioCtx.state==="suspended") audioCtx.resume();
-  }catch(e){}
+function playTone(freq, duration=0.08, type="square", volume=0.045, delay=0){
+  if(!audioCtx) return;
+  const now = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, now);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(volume, now + 0.008);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(now);
+  osc.stop(now + duration + 0.015);
 }
+
+function diceRollSound(){
+  if(!audioCtx) return;
+  playTone(180 + Math.random()*80, 0.055, "square", 0.035);
+}
+
+function diceResultSound(win){
+  if(!audioCtx) return;
+  if(win){
+    playTone(520, 0.10, "sine", 0.06, 0);
+    playTone(660, 0.10, "sine", 0.06, 0.11);
+    playTone(820, 0.16, "sine", 0.065, 0.22);
+  }else{
+    playTone(220, 0.12, "sawtooth", 0.045, 0);
+    playTone(165, 0.18, "sawtooth", 0.04, 0.13);
+  }
+}
+
 function diceRollSound(){
   if(!audioCtx)return;
   const now=audioCtx.currentTime;
@@ -162,3 +183,27 @@ Q('#reset').addEventListener('click',()=>{
   Q('#total').textContent='—';
   notice('Choices reset. Select again and roll.');
 });
+
+const soundToggle = document.getElementById("soundToggle");
+let soundEnabled = true;
+if(soundToggle){
+  soundToggle.addEventListener("click", ()=>{
+    soundEnabled = !soundEnabled;
+    soundToggle.textContent = soundEnabled ? "🔊 Sound ON" : "🔇 Sound OFF";
+    soundToggle.classList.toggle("off", !soundEnabled);
+    if(soundEnabled) audioStart();
+  });
+}
+const _audioStart = audioStart;
+audioStart = function(){
+  if(!soundEnabled) return false;
+  return _audioStart();
+};
+const _diceRollSound = diceRollSound;
+diceRollSound = function(){
+  if(soundEnabled) _diceRollSound();
+};
+const _diceResultSound = diceResultSound;
+diceResultSound = function(win){
+  if(soundEnabled) _diceResultSound(win);
+};
