@@ -1,16 +1,120 @@
 const Q=s=>document.querySelector(s),QA=s=>[...document.querySelectorAll(s)];
 let lives=10,credits=0,streak=0,round=1,rolling=false,numbers=new Set(),size=null,parity=null;
+
+let audioCtx=null;
+function audioStart(){
+  try{
+    audioCtx=audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==="suspended") audioCtx.resume();
+  }catch(e){}
+}
+function diceSound(finalSound=false){
+  if(!audioCtx)return;
+  const now=audioCtx.currentTime;
+  const osc=audioCtx.createOscillator();
+  const gain=audioCtx.createGain();
+  osc.type=finalSound?"triangle":"square";
+  osc.frequency.setValueAtTime(finalSound?180:95,now);
+  osc.frequency.exponentialRampToValueAtTime(finalSound?80:55,now+0.08);
+  gain.gain.setValueAtTime(0.0001,now);
+  gain.gain.exponentialRampToValueAtTime(finalSound?0.16:0.08,now+0.008);
+  gain.gain.exponentialRampToValueAtTime(0.0001,now+0.09);
+  osc.connect(gain);gain.connect(audioCtx.destination);
+  osc.start(now);osc.stop(now+0.1);
+}
+
 const layouts={1:[[50,50]],2:[[25,25],[75,75]],3:[[25,25],[50,50],[75,75]],4:[[25,25],[75,25],[25,75],[75,75]],5:[[25,25],[75,25],[50,50],[25,75],[75,75]],6:[[25,25],[25,50],[25,75],[75,25],[75,50],[75,75]]};
-for(let n=3;n<=18;n++){const b=document.createElement('button');b.type='button';b.className='num';b.textContent=n;b.addEventListener('click',()=>{if(rolling)return;if(numbers.has(n)){numbers.delete(n);b.classList.remove('selected')}else{if(numbers.size>=lives){notice('Not enough lives for another number choice.','loss');return}numbers.add(n);b.classList.add('selected')}});Q('#numbers').appendChild(b)}
-QA('.pick').forEach(b=>b.addEventListener('click',()=>{if(rolling)return;const k=b.dataset.kind,v=b.dataset.val;if(k==='size')size=size===v?null:v;else parity=parity===v?null:v;QA('.pick').forEach(x=>x.classList.toggle('selected',(x.dataset.kind==='size'?x.dataset.val===size:x.dataset.val===parity)))}));
-function draw(d,v){d.innerHTML='';for(const p of layouts[v]){const x=document.createElement('i');x.className='pip';x.style.left=p[0]+'%';x.style.top=p[1]+'%';d.appendChild(x)}d.dataset.v=v}
+
+for(let n=3;n<=18;n++){
+ const b=document.createElement('button');b.type='button';b.className='num';b.textContent=n;
+ b.addEventListener('click',()=>{
+   if(rolling)return;
+   if(numbers.has(n)){numbers.delete(n);b.classList.remove('selected')}
+   else{if(numbers.size>=lives){notice('Not enough lives for another number choice.','loss');return}numbers.add(n);b.classList.add('selected')}
+ });
+ Q('#numbers').appendChild(b);
+}
+QA('.pick').forEach(b=>b.addEventListener('click',()=>{
+ if(rolling)return; const k=b.dataset.kind,v=b.dataset.val;
+ if(k==='size')size=size===v?null:v; else parity=parity===v?null:v;
+ QA('.pick').forEach(x=>x.classList.toggle('selected',(x.dataset.kind==='size'?x.dataset.val===size:x.dataset.val===parity)));
+}));
+
+function draw(d,v){
+ d.innerHTML='';
+ for(const p of layouts[v]){const x=document.createElement('i');x.className='pip';x.style.left=p[0]+'%';x.style.top=p[1]+'%';d.appendChild(x)}
+ d.dataset.v=v;
+}
 function notice(t,c=''){Q('#notice').textContent=t;Q('#notice').className='notice '+c}
-function animate(type){const box=Q('#resultAnimation');Q('#animationTitle').textContent=type==='win'?'WIN':'LOSS';Q('#medal').textContent=type==='win'?'✓':'−';box.className='result-animation '+type+' show';setTimeout(()=>box.className='result-animation '+type,1300)}
+function animate(type,sub){
+ const box=Q('#resultAnimation');
+ Q('#animationTitle').textContent=type==='win'?'WIN':'LOSS';
+ Q('#animationSub').textContent=sub;
+ Q('#medal').textContent=type==='win'?'✓':'−';
+ box.className='result-animation '+type+' show';
+ box.setAttribute('aria-hidden','false');
+ setTimeout(()=>{box.className='result-animation '+type;box.setAttribute('aria-hidden','true')},1750);
+}
 function clearChoices(){numbers.clear();size=null;parity=null;QA('.num,.pick').forEach(x=>x.classList.remove('selected'))}
-function addChip(label,win){const r=document.createElement('div');r.className='result-chip '+(win?'win':'loss');r.innerHTML='<span class="label">'+label+'</span><span class="state">'+(win?'✓ WIN':'✕ LOSS')+'</span>';Q('#resultList').appendChild(r)}
-function roll(){if(rolling||(!numbers.size&&!size&&!parity))return;if(numbers.size>lives){notice('Not enough lives.','loss');return}rolling=true;Q('#roll').disabled=true;QA('.die').forEach(d=>d.classList.add('rolling'));const v=[1+Math.random()*6|0,1+Math.random()*6|0,1+Math.random()*6|0];setTimeout(()=>{QA('.die').forEach((d,i)=>{d.classList.remove('rolling');draw(d,v[i])});const total=v[0]+v[1]+v[2];Q('#total').textContent=total;const used=numbers.size;lives-=used;const results=[];if(numbers.size){const ok=numbers.has(total);results.push(['Number '+total,ok]);if(ok){lives+=2;credits+=10;streak++}else streak=0}
-if(size){const ok=size==='small'?total<=10:total>=11;results.push([size==='small'?'SMALL':'BIG',ok])}
-if(parity){const ok=parity==='even'?total%2===0:total%2!==0;results.push([parity.toUpperCase(),ok])}
-Q('#resultList').innerHTML='';results.forEach(x=>addChip(x[0],x[1]));const anyWin=results.some(x=>x[1]);notice(anyWin?'Result checked — see each choice above.':'All selected choices lost this round.',anyWin?'win':'loss');animate(anyWin?'win':'loss');Q('#lives').textContent=lives;Q('#credits').textContent=credits;Q('#streak').textContent=streak;addHistory(v,total,results);round++;Q('#period').textContent=String(round).padStart(6,'0');clearChoices();rolling=false;Q('#roll').disabled=false},900)}
-function addHistory(v,total,results){const wins=results.filter(x=>x[1]).map(x=>x[0]);const losses=results.filter(x=>!x[1]).map(x=>x[0]);const r=document.createElement('div');r.className='history-row';r.innerHTML='<span>#'+round+'</span><span>🎲 '+v.join(' + ')+' = <b>'+total+'</b></span><span class="'+(wins.length?'win':'loss')+'">'+(wins.length?'WIN: '+wins.join(', '):'LOSS')+(losses.length?' • '+losses.join(', '):'')+'</span>';Q('#history').prepend(r);while(Q('#history').children.length>15)Q('#history').lastElementChild.remove()}
-QA('.die').forEach(d=>draw(d,1));Q('#roll').addEventListener('click',roll);Q('#lives').textContent=lives;Q('#credits').textContent=credits;Q('#streak').textContent=streak;
+function addChip(label,win){
+ const r=document.createElement('div');r.className='result-chip '+(win?'win':'loss');
+ r.innerHTML='<span class="label">'+label+'</span><span class="state">'+(win?'✓ WIN':'✕ LOSS')+'</span>';
+ Q('#resultList').appendChild(r);
+}
+function roll(){
+ if(rolling||(!numbers.size&&!size&&!parity))return;
+ audioStart();
+ if(numbers.size>lives){notice('Not enough lives.','loss');return}
+ rolling=true;Q('#roll').disabled=true;QA('.die').forEach(d=>d.classList.add('rolling'));
+ diceSound(false);
+ const soundTimer=setInterval(()=>diceSound(false),180);
+ const v=[1+Math.random()*6|0,1+Math.random()*6|0,1+Math.random()*6|0];
+ setTimeout(()=>{
+   clearInterval(soundTimer);
+   diceSound(true);
+   QA('.die').forEach((d,i)=>{d.classList.remove('rolling');draw(d,v[i])});
+   const total=v[0]+v[1]+v[2],used=numbers.size;
+   const results=[];
+   lives-=used;
+
+   if(numbers.size){
+     const ok=numbers.has(total);
+     results.push(['Number '+total,ok]);
+     if(ok){lives+=2;credits+=10;streak++}else streak=0;
+   }
+   if(size){
+     const ok=size==='small'?total<=10:total>=11;
+     results.push([size==='small'?'SMALL':'BIG',ok]);
+   }
+   if(parity){
+     const ok=parity==='even'?total%2===0:total%2!==0;
+     results.push([parity.toUpperCase(),ok]);
+   }
+
+   Q('#resultList').innerHTML='';
+   results.forEach(x=>addChip(x[0],x[1]));
+   const wins=results.filter(x=>x[1]).map(x=>x[0]);
+   const losses=results.filter(x=>!x[1]).map(x=>x[0]);
+   const anyWin=wins.length>0;
+   notice(anyWin?'Result checked — each choice is shown separately.':'All selected choices are LOSS.',''+(anyWin?'win':'loss'));
+
+   // One animation for the round: golden if any selected choice wins, silver if all lose.
+   animate(anyWin?'win':'loss',anyWin?wins.join(' + ')+' matched':'No selected choice matched');
+
+   Q('#total').textContent=total;Q('#lives').textContent=lives;Q('#credits').textContent=credits;Q('#streak').textContent=streak;
+   addHistory(v,total,results);
+   round++;Q('#period').textContent=String(round).padStart(6,'0');
+   clearChoices();rolling=false;Q('#roll').disabled=false;
+ },900);
+}
+function addHistory(v,total,results){
+ const wins=results.filter(x=>x[1]).map(x=>x[0]),losses=results.filter(x=>!x[1]).map(x=>x[0]);
+ const r=document.createElement('div');r.className='history-row';
+ r.innerHTML='<span>#'+round+'</span><span>🎲 '+v.join(' + ')+' = <b>'+total+'</b></span><span class="'+(wins.length?'win':'loss')+'">'+
+ (wins.length?'WIN: '+wins.join(', '):'LOSS')+(losses.length?' • '+losses.join(', '):'')+'</span>';
+ Q('#history').prepend(r);
+ while(Q('#history').children.length>15)Q('#history').lastElementChild.remove();
+}
+QA('.die').forEach(d=>draw(d,1));
+Q('#roll').addEventListener('click',roll);
+Q('#lives').textContent=lives;Q('#credits').textContent=credits;Q('#streak').textContent=streak;
