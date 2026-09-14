@@ -1,1 +1,99 @@
-<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dice Arena • Anshu</title><link rel="stylesheet" href="style.css"></head><body><main><header><div class="logo">🎲</div><div><h1>DICE ARENA</h1><small>NUMBER GUESS CHALLENGE</small></div><button id="reset">↻</button></header><section class="hero"><div><b>⚡ LIVE CHALLENGE</b><h2>Can you predict <em>the total?</em></h2><p>Choose one or more numbers, roll three dice and build your streak.</p></div><aside>ROUND<strong id="round">01</strong></aside></section><section class="stats"><div>⭐ SCORE<strong id="score">0</strong></div><div>🔥 STREAK<strong id="streak">0</strong></div><div>❤️ LIVES<strong id="lives">10</strong></div><div>🏆 BEST<strong id="best">0</strong></div></section><section class="arena"><div class="bar"><b id="status">SELECT YOUR NUMBERS</b><span><i id="timer">30</i> SEC</span></div><div class="dice"><div><figure id="d1"></figure><b id="v1">?</b></div><div><figure id="d2"></figure><b id="v2">?</b></div><div><figure id="d3"></figure><b id="v3">?</b></div></div><div class="total">TOTAL <strong id="total">—</strong></div></section><section class="guess"><div class="bar"><div><small>YOUR PREDICTION</small><h3>Pick your numbers</h3></div><span><b id="count">0</b> selected</span></div><div class="numbers" id="numbers"></div><p>Selected: <b id="chosen">None</b></p><button id="roll" class="roll">🎲 ROLL DICE</button></section><section class="note"><b>HOW TO SCORE</b><span>Correct selected total = +100 points. Every 2-round streak adds a fixed +50 bonus. Wrong rounds use one life; points are never removed.</span></section><section class="history"><div class="bar"><h3>📜 Game History</h3><button id="clear">Clear</button></div><div id="history"></div></section><footer>Designed & built by <b>Anshu</b> • Virtual points only</footer></main><div id="win" class="overlay"><div class="card">🏆<h2>CONGRATULATIONS!</h2><p id="winText"></p><button id="cont">CONTINUE</button></div></div><script src="script.js"></script></body></html>
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dice Arena • Anshu</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+  <header>
+    <div class="logo">🎲</div>
+    <div><h1>DICE ARENA</h1><small>NUMBER GUESS CHALLENGE</small></div>
+    <div class="headerBtns">
+      <button id="mute" title="Toggle sound">🔊</button>
+      <button id="reset" title="Reset game">↻</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div>
+      <b>⚡ LIVE CHALLENGE</b>
+      <h2>Can you predict <em>the total?</em></h2>
+      <p>Place a wager, choose one or more numbers, roll three dice and build your streak.</p>
+    </div>
+    <aside>ROUND<strong id="round">01</strong></aside>
+  </section>
+
+  <section class="stats">
+    <div>💰 CREDITS<strong id="credits">500</strong></div>
+    <div>⭐ SCORE<strong id="score">0</strong></div>
+    <div>🔥 STREAK<strong id="streak">0</strong></div>
+    <div>❤️ LIVES<strong id="lives">10</strong></div>
+    <div>🏆 BEST<strong id="best">0</strong></div>
+  </section>
+
+  <section class="arena">
+    <div class="bar">
+      <b id="status">SELECT YOUR NUMBERS</b>
+      <span><i id="timer">30</i> SEC</span>
+    </div>
+    <div class="dice">
+      <div><figure id="d1"></figure><b id="v1">?</b></div>
+      <div><figure id="d2"></figure><b id="v2">?</b></div>
+      <div><figure id="d3"></figure><b id="v3">?</b></div>
+    </div>
+    <div class="total">TOTAL <strong id="total">—</strong></div>
+  </section>
+
+  <section class="guess">
+    <div class="bar wager">
+      <div><small>YOUR WAGER</small><h3>Place your bet</h3></div>
+      <span><b id="betAmt">20</b> credits</span>
+    </div>
+    <div class="chips" id="chips">
+      <button data-v="10">10</button>
+      <button data-v="25">25</button>
+      <button data-v="50">50</button>
+      <button data-v="100">100</button>
+      <button id="betDown" class="chipAdj">−</button>
+      <button id="betUp" class="chipAdj">+</button>
+    </div>
+
+    <div class="bar">
+      <div><small>YOUR PREDICTION</small><h3>Pick your numbers</h3></div>
+      <span><b id="count">0</b> selected</span>
+    </div>
+    <div class="numbers" id="numbers"></div>
+    <p>Selected: <b id="chosen">None</b></p>
+    <p class="payoutPreview">Potential payout: <b id="payoutPreview">—</b></p>
+
+    <button id="roll" class="roll">🎲 ROLL DICE</button>
+  </section>
+
+  <section class="note">
+    <b>HOW TO SCORE</b>
+    <span>Correct selected total pays your bet × the listed multiplier and adds 100 points (+50 bonus every 2-round streak). Fewer numbers picked = higher payout. A wrong guess costs one life and your wager.</span>
+  </section>
+
+  <section class="history">
+    <div class="bar"><h3>📜 Game History</h3><button id="clear">Clear</button></div>
+    <div id="history"></div>
+  </section>
+
+  <footer>Designed & built by <b>Anshu</b> • Virtual credits only, no real money involved</footer>
+</main>
+
+<div id="win" class="overlay">
+  <div class="card">🏆
+    <h2>CONGRATULATIONS!</h2>
+    <p id="winText"></p>
+    <button id="cont">CONTINUE</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
